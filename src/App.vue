@@ -130,6 +130,7 @@
 </template>
 
 <script>
+import "tailwindcss/tailwind.css";
 
 export default {
   name: 'App',
@@ -180,5 +181,3 @@ export default {
   }
 }
 </script>
-
-<style src="@/assets/app.css"></style>

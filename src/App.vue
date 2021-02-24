@@ -130,6 +130,7 @@
 </template>
 
 <script>
+import api from '@/api';
 
 export default {
   name: 'App',
@@ -150,14 +151,13 @@ export default {
       if (!this.search) return;
 
       const newTicker = {
-        title: this.search,
+        title: this.search.toUpperCase(),
         price: '-'
       };
       this.items.push(newTicker);
 
       setInterval(async () => {
-        const data = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${newTicker.title}&tsyms=USD&api_key=d1f2115da3738ccac61045def57cbb1342d1eca11927eb58290c7cf3dd09debb`);
-        const result = await data.json();
+        const result = await api.fetchTickers(newTicker.title);
         console.log('result', result);
         this.items.find(item => item.title === newTicker.title).price = result['USD'] > 1 ? result['USD'].toFixed(2) : result['USD'].toPrecision(2);
 

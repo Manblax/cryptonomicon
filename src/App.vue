@@ -159,7 +159,11 @@ export default {
       setInterval(async () => {
         const result = await api.fetchTickers(newTicker.title);
         console.log('result', result);
-        this.items.find(item => item.title === newTicker.title).price = result['USD'] > 1 ? result['USD'].toFixed(2) : result['USD'].toPrecision(2);
+        const item = this.items.find(item => item.title === newTicker.title);
+        console.log('item', item);
+        if (item) {
+          item.price = result['USD'] > 1 ? result['USD'].toFixed(2) : result['USD'].toPrecision(2);
+        }
 
         if (this.sel?.name === newTicker.name) {
           this.graph.push(result['USD']);

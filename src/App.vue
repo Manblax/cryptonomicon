@@ -11,6 +11,7 @@
             <div class="mt-1 relative rounded-md shadow-md">
               <input
                   v-model="search"
+                  @input="searchHandler"
                   @keydown.enter="addItem"
                   type="text"
                   name="wallet"
@@ -19,6 +20,16 @@
                   placeholder="Например DOGE"
               />
             </div>
+            <div v-if="makeSuggestions().length" class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap">
+              <span
+                  v-for="coinSuggest of makeSuggestions()"
+                  :key="coinSuggest.Id"
+                  class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
+              >
+                {{ coinSuggest.Symbol }}
+              </span>
+            </div>
+            <div v-if="tickerError" class="text-sm text-red-600">Такой тикер уже добавлен</div>
           </div>
         </div>
         <button
@@ -139,16 +150,36 @@ export default {
       search: '',
       items: [],
       sel: null,
-      graph: []
+      graph: [],
+      tickerError: false
     }
   },
   methods: {
+    searchHandler() {
+      if (this.tickerError) {
+        this.tickerError = false;
+      }
+      this.makeSuggestions();
+    },
+    makeSuggestions() {
+      if (!this.search.trim()) return [];
+
+      let coinList = JSON.parse(sessionStorage.getItem('coinlist')) || [];
+      coinList = Object.values(coinList.Data);
+      coinList = coinList.filter(item => item.FullName.toLowerCase().includes(this.search.trim().toLowerCase()));
+      coinList.splice(4);
+
+      return coinList;
+    },
     deleteItem(currentItem) {
       console.log(currentItem);
       this.items = this.items.filter(item => item !== currentItem);
     },
     addItem() {
       if (!this.search) return;
+
+      const isIncludes = this.items.some(item => item.title.toLowerCase() === this.search.toLowerCase());
+      if (isIncludes) return this.tickerError = true;
 
       const newTicker = {
         title: this.search.toUpperCase(),
@@ -180,7 +211,16 @@ export default {
       const max = Math.max(...this.graph);
       const min = Math.min(...this.graph);
       return this.graph.map(price => 5 + ((price - min) * 95) / (max - min));
+    },
+    async saveCoinList() {
+      const coinList = JSON.parse(sessionStorage.getItem('coinlist'));
+      if (!coinList) {
+        sessionStorage.setItem('coinlist', JSON.stringify(await api.fetchCoinList()));
+      }
     }
+  },
+  created() {
+    this.saveCoinList();
   }
 }
 </script>

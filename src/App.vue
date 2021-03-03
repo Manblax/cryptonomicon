@@ -1,5 +1,14 @@
 <template>
   <div class="container mx-auto flex flex-col items-center bg-gray-100 p-4">
+<!--    <div class="fixed w-100 h-100 opacity-80 bg-purple-800 inset-0 z-50 flex items-center justify-center">-->
+<!--      <svg class="animate-spin -ml-1 mr-3 h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"-->
+<!--           viewBox="0 0 24 24">-->
+<!--        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>-->
+<!--        <path class="opacity-75" fill="currentColor"-->
+<!--              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>-->
+<!--      </svg>-->
+<!--    </div>-->
+
     <div class="container">
       <div class="w-full my-4"></div>
       <section>
@@ -23,6 +32,7 @@
             <div v-if="makeSuggestions().length" class="flex bg-white shadow-md p-1 rounded-md shadow-md flex-wrap">
               <span
                   v-for="coinSuggest of makeSuggestions()"
+                  @click="addSuggest(coinSuggest)"
                   :key="coinSuggest.Id"
                   class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
               >
@@ -160,6 +170,11 @@ export default {
         this.tickerError = false;
       }
       this.makeSuggestions();
+    },
+    addSuggest(coinSuggest) {
+      console.log('coinSuggest', coinSuggest)
+      this.search = coinSuggest.Symbol;
+      this.addItem();
     },
     makeSuggestions() {
       if (!this.search.trim()) return [];

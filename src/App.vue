@@ -1,13 +1,13 @@
 <template>
   <div class="container mx-auto flex flex-col items-center bg-gray-100 p-4">
-<!--    <div class="fixed w-100 h-100 opacity-80 bg-purple-800 inset-0 z-50 flex items-center justify-center">-->
-<!--      <svg class="animate-spin -ml-1 mr-3 h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"-->
-<!--           viewBox="0 0 24 24">-->
-<!--        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>-->
-<!--        <path class="opacity-75" fill="currentColor"-->
-<!--              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>-->
-<!--      </svg>-->
-<!--    </div>-->
+    <!--    <div class="fixed w-100 h-100 opacity-80 bg-purple-800 inset-0 z-50 flex items-center justify-center">-->
+    <!--      <svg class="animate-spin -ml-1 mr-3 h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"-->
+    <!--           viewBox="0 0 24 24">-->
+    <!--        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>-->
+    <!--        <path class="opacity-75" fill="currentColor"-->
+    <!--              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>-->
+    <!--      </svg>-->
+    <!--    </div>-->
 
     <div class="container">
       <div class="w-full my-4"></div>
@@ -189,8 +189,9 @@ export default {
     deleteItem(currentItem) {
       console.log(currentItem);
       this.items = this.items.filter(item => item !== currentItem);
+      localStorage.setItem('tickerList', JSON.stringify(this.items));
     },
-    addItem() {
+    async addItem() {
       if (!this.search) return;
 
       const isIncludes = this.items.some(item => item.title.toLowerCase() === this.search.toLowerCase());
@@ -201,22 +202,28 @@ export default {
         price: '-'
       };
       this.items.push(newTicker);
-
-      setInterval(async () => {
-        const result = await api.fetchTickers(newTicker.title);
-        console.log('result', result);
-        const item = this.items.find(item => item.title === newTicker.title);
-        console.log('item', item);
-        if (item) {
-          item.price = result['USD'] > 1 ? result['USD'].toFixed(2) : result['USD'].toPrecision(2);
-        }
-
-        if (this.sel?.name === newTicker.name) {
-          this.graph.push(result['USD']);
-        }
-      }, 3000);
+      await this.subscribeToUpdates(newTicker.title);
+      localStorage.setItem('tickerList', JSON.stringify(this.items));
 
       this.search = ''
+    },
+    subscribeToUpdates(tickerName) {
+      return new Promise((resolve) => {
+        setInterval(async () => {
+          const result = await api.fetchTickers(tickerName);
+          console.log('result', result);
+          const item = this.items.find(item => item.title === tickerName);
+          console.log('item', item);
+          if (item) {
+            item.price = result['USD'] > 1 ? result['USD'].toFixed(2) : result['USD'].toPrecision(2);
+          }
+
+          if (this.sel?.name === tickerName) {
+            this.graph.push(result['USD']);
+          }
+          resolve();
+        }, 3000);
+      });
     },
     selectTicker(item) {
       this.sel = item;
@@ -232,10 +239,15 @@ export default {
       if (!coinList) {
         sessionStorage.setItem('coinlist', JSON.stringify(await api.fetchCoinList()));
       }
+    },
+    initTickerList() {
+      this.items = JSON.parse(localStorage.getItem('tickerList')) || [];
+      this.items.forEach(item => this.subscribeToUpdates(item.title));
     }
   },
   created() {
     this.saveCoinList();
+    this.initTickerList();
   }
 }
 </script>

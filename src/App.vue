@@ -72,6 +72,7 @@
           <div class="mt-1 relative rounded-md shadow-md">
             <input
                 v-model="filter"
+                @input="filterHandler"
                 type="text"
                 name="filter"
                 id="filter"
@@ -81,6 +82,7 @@
           </div>
         </div>
         <button
+            :class="{'bg-opacity-50 hover:bg-opacity-50': page <= 1}"
             @click="toPrevPage"
             type="button"
             class="inline-flex items-center ml-10 py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
@@ -88,6 +90,7 @@
           Назад
         </button>
         <button
+            :class="{'bg-opacity-50 hover:bg-opacity-50': page >= lastPage}"
             @click="toNextPage"
             type="button"
             class="inline-flex items-center ml-5 py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
@@ -239,6 +242,7 @@ export default {
       };
       this.items.push(newTicker);
       this.search = '';
+      this.filter = '';
       await this.subscribeToUpdates(newTicker.title);
       localStorage.setItem('tickerList', JSON.stringify(this.items));
     },
@@ -246,9 +250,9 @@ export default {
       return new Promise((resolve) => {
         setInterval(async () => {
           const result = await api.fetchTickers(tickerName);
-          console.log('result', result);
+          //console.log('result', result);
           const item = this.items.find(item => item.title === tickerName);
-          console.log('item', item);
+          //console.log('item', item);
           if (item) {
             item.price = result['USD'] > 1 ? result['USD'].toFixed(2) : result['USD'].toPrecision(2);
           }
@@ -276,8 +280,18 @@ export default {
       }
     },
     initTickerList() {
+      const searchParams = new URLSearchParams(window.location.search);
+      console.log(searchParams.get('filter'))
+      this.filter = searchParams.get('filter');
+      this.page = searchParams.get('page');
+
       this.items = JSON.parse(localStorage.getItem('tickerList')) || [];
       this.items.forEach(item => this.subscribeToUpdates(item.title));
+    },
+    filterHandler() {
+      this.page = 1;
+      this.lastPage = 1;
+      this.pushState();
     },
     filterTickers() {
       const filteredTickers = this.filter ? this.items.filter(item => item.title.toLowerCase().includes(this.filter.trim().toLowerCase())) :
@@ -288,12 +302,17 @@ export default {
     toPrevPage() {
       if (this.page > 1) {
         this.page--;
+        this.pushState();
       }
     },
     toNextPage() {
       if (this.page < this.lastPage) {
         this.page++;
+        this.pushState();
       }
+    },
+    pushState() {
+      window.history.pushState(null, document.title, `${window.location.pathname}?filter=${this.filter}&page=${this.page}`);
     }
   },
   created() {

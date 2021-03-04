@@ -64,11 +64,41 @@
         </button>
       </section>
 
-      <template v-if="items.length">
+      <div class="flex items-end mt-4">
+        <div class="w-1/5">
+          <label for="filter" class="block text-sm font-medium text-gray-700"
+          >Фильтр</label
+          >
+          <div class="mt-1 relative rounded-md shadow-md">
+            <input
+                v-model="filter"
+                type="text"
+                name="filter"
+                id="filter"
+                class="block w-full pr-10 border-gray-300 text-gray-900 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm rounded-md"
+                placeholder="Фильтр"
+            />
+          </div>
+        </div>
+        <button
+            type="button"
+            class="inline-flex items-center ml-10 py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+        >
+          Назад
+        </button>
+        <button
+            type="button"
+            class="inline-flex items-center ml-5 py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+        >
+          Вперед
+        </button>
+      </div>
+
+      <template v-if="filterTickers().length">
         <hr class="w-full border-t border-gray-600 my-4"/>
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div
-              v-for="(item, index) of items"
+              v-for="(item, index) of filterTickers()"
               @click="selectTicker(item)"
               :class="{'border-4': item === sel}"
               :key="index"
@@ -161,7 +191,8 @@ export default {
       items: [],
       sel: null,
       graph: [],
-      tickerError: false
+      tickerError: false,
+      filter: '',
     }
   },
   methods: {
@@ -202,10 +233,9 @@ export default {
         price: '-'
       };
       this.items.push(newTicker);
+      this.search = '';
       await this.subscribeToUpdates(newTicker.title);
       localStorage.setItem('tickerList', JSON.stringify(this.items));
-
-      this.search = ''
     },
     subscribeToUpdates(tickerName) {
       return new Promise((resolve) => {
@@ -243,6 +273,10 @@ export default {
     initTickerList() {
       this.items = JSON.parse(localStorage.getItem('tickerList')) || [];
       this.items.forEach(item => this.subscribeToUpdates(item.title));
+    },
+    filterTickers() {
+      return this.filter ? this.items.filter(item => item.title.toLowerCase().includes(this.filter.trim().toLowerCase())) :
+          this.items;
     }
   },
   created() {

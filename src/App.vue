@@ -81,17 +81,20 @@
           </div>
         </div>
         <button
+            @click="toPrevPage"
             type="button"
             class="inline-flex items-center ml-10 py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
         >
           Назад
         </button>
         <button
+            @click="toNextPage"
             type="button"
             class="inline-flex items-center ml-5 py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
         >
           Вперед
         </button>
+        <span class="ml-4">{{ page }}</span>
       </div>
 
       <template v-if="filterTickers().length">
@@ -193,6 +196,8 @@ export default {
       graph: [],
       tickerError: false,
       filter: '',
+      page: 1,
+      lastPage: 1,
     }
   },
   methods: {
@@ -275,8 +280,20 @@ export default {
       this.items.forEach(item => this.subscribeToUpdates(item.title));
     },
     filterTickers() {
-      return this.filter ? this.items.filter(item => item.title.toLowerCase().includes(this.filter.trim().toLowerCase())) :
-          this.items;
+      const filteredTickers = this.filter ? this.items.filter(item => item.title.toLowerCase().includes(this.filter.trim().toLowerCase())) :
+          [...this.items];
+      this.lastPage = Math.ceil(filteredTickers.length / 6);
+      return filteredTickers.splice((this.page - 1) * 6, 6);
+    },
+    toPrevPage() {
+      if (this.page > 1) {
+        this.page--;
+      }
+    },
+    toNextPage() {
+      if (this.page < this.lastPage) {
+        this.page++;
+      }
     }
   },
   created() {

@@ -100,11 +100,11 @@
         <span class="ml-4">{{ page }}</span>
       </div>
 
-      <template v-if="filterTickers().length">
+      <template v-if="filteredTickers().length">
         <hr class="w-full border-t border-gray-600 my-4"/>
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div
-              v-for="(item, index) of filterTickers()"
+              v-for="(item, index) of filteredTickers()"
               @click="selectTicker(item)"
               :class="{'border-4': item === sel}"
               :key="index"
@@ -261,7 +261,7 @@ export default {
             this.graph.push(result['USD']);
           }
           resolve();
-        }, 3000);
+        }, 5000);
       });
     },
     selectTicker(item) {
@@ -282,18 +282,18 @@ export default {
     initTickerList() {
       const searchParams = new URLSearchParams(window.location.search);
       console.log(searchParams.get('filter'))
-      this.filter = searchParams.get('filter');
-      this.page = searchParams.get('page');
+      this.filter = searchParams.get('filter') || this.filter;
+      this.page = searchParams.get('page') || this.page;
 
       this.items = JSON.parse(localStorage.getItem('tickerList')) || [];
       this.items.forEach(item => this.subscribeToUpdates(item.title));
     },
     filterHandler() {
       this.page = 1;
-      this.lastPage = 1;
+      this.lastPage = 1; // нужно ли это ?
       this.pushState();
     },
-    filterTickers() {
+    filteredTickers() {
       const filteredTickers = this.filter ? this.items.filter(item => item.title.toLowerCase().includes(this.filter.trim().toLowerCase())) :
           [...this.items];
       this.lastPage = Math.ceil(filteredTickers.length / 6);

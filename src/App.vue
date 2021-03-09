@@ -100,11 +100,11 @@
         <span class="ml-4">{{ page }}</span>
       </div>
 
-      <template v-if="filteredTickers().length">
+      <template v-if="paginatedTickers.length">
         <hr class="w-full border-t border-gray-600 my-4"/>
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div
-              v-for="(item, index) of filteredTickers()"
+              v-for="(item, index) of paginatedTickers"
               @click="selectTicker(item)"
               :class="{'border-4': item === sel}"
               :key="index"
@@ -147,7 +147,7 @@
           {{ sel.title }} - USD
         </h3>
         <div class="flex items-end border-gray-600 border-b border-l h-64">
-          <div v-for="(bar, index) of normalizeGraph()"
+          <div v-for="(bar, index) of normalizedGraph"
                :key="index"
                :style="{height: `${bar}%`}"
                class="bg-purple-800 border w-10">
@@ -200,8 +200,25 @@ export default {
       tickerError: false,
       filter: '',
       page: 1,
-      lastPage: 1,
     }
+  },
+  computed: {
+    filteredTickers() {
+      return this.filter
+          ? this.items.filter(item => item.title.toLowerCase().includes(this.filter.trim().toLowerCase()))
+          : [...this.items];
+    },
+    paginatedTickers() {
+      return [...this.filteredTickers].splice((this.page - 1) * 6, 6);
+    },
+    lastPage() {
+      return Math.ceil(this.filteredTickers.length / 6);
+    },
+    normalizedGraph() {
+      const max = Math.max(...this.graph);
+      const min = Math.min(...this.graph);
+      return this.graph.map(price => 5 + ((price - min) * 95) / (max - min));
+    },
   },
   methods: {
     searchHandler() {
@@ -268,11 +285,6 @@ export default {
       this.sel = item;
       this.graph = [];
     },
-    normalizeGraph() {
-      const max = Math.max(...this.graph);
-      const min = Math.min(...this.graph);
-      return this.graph.map(price => 5 + ((price - min) * 95) / (max - min));
-    },
     async saveCoinList() {
       const coinList = JSON.parse(sessionStorage.getItem('coinlist'));
       if (!coinList) {
@@ -290,14 +302,7 @@ export default {
     },
     filterHandler() {
       this.page = 1;
-      this.lastPage = 1; // нужно ли это ?
       this.pushState();
-    },
-    filteredTickers() {
-      const filteredTickers = this.filter ? this.items.filter(item => item.title.toLowerCase().includes(this.filter.trim().toLowerCase())) :
-          [...this.items];
-      this.lastPage = Math.ceil(filteredTickers.length / 6);
-      return filteredTickers.splice((this.page - 1) * 6, 6);
     },
     toPrevPage() {
       if (this.page > 1) {

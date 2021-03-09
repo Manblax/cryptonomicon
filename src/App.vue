@@ -72,7 +72,6 @@
           <div class="mt-1 relative rounded-md shadow-md">
             <input
                 v-model="filter"
-                @input="filterHandler"
                 type="text"
                 name="filter"
                 id="filter"
@@ -106,7 +105,7 @@
           <div
               v-for="(item, index) of paginatedTickers"
               @click="selectTicker(item)"
-              :class="{'border-4': item === sel}"
+              :class="{'border-4': item === selectedTicker}"
               :key="index"
               class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer">
             <div class="px-4 py-5 sm:p-6 text-center">
@@ -142,9 +141,9 @@
         </dl>
         <hr class="w-full border-t border-gray-600 my-4"/>
       </template>
-      <section v-if="sel" class="relative">
+      <section v-if="selectedTicker" class="relative">
         <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
-          {{ sel.title }} - USD
+          {{ selectedTicker.title }} - USD
         </h3>
         <div class="flex items-end border-gray-600 border-b border-l h-64">
           <div v-for="(bar, index) of normalizedGraph"
@@ -157,7 +156,7 @@
         <button
             type="button"
             class="absolute top-0 right-0"
-            @click="sel = ''"
+            @click="selectedTicker = ''"
         >
           <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -195,7 +194,7 @@ export default {
     return {
       search: '',
       items: [],
-      sel: null,
+      selectedTicker: null,
       graph: [],
       tickerError: false,
       filter: '',
@@ -217,6 +216,9 @@ export default {
     normalizedGraph() {
       const max = Math.max(...this.graph);
       const min = Math.min(...this.graph);
+      if (min === max) {
+        return this.graph.map(() => 50);
+      }
       return this.graph.map(price => 5 + ((price - min) * 95) / (max - min));
     },
   },
@@ -242,9 +244,12 @@ export default {
 
       return coinList;
     },
-    deleteItem(currentItem) {
-      console.log(currentItem);
-      this.items = this.items.filter(item => item !== currentItem);
+    deleteItem(tickerToRemove) {
+      console.log(tickerToRemove);
+      this.items = this.items.filter(item => item !== tickerToRemove);
+      if (this.selectedTicker === tickerToRemove) {
+        this.selectedTicker = null;
+      }
       localStorage.setItem('tickerList', JSON.stringify(this.items));
     },
     async addItem() {
@@ -274,7 +279,7 @@ export default {
             item.price = result['USD'] > 1 ? result['USD'].toFixed(2) : result['USD'].toPrecision(2);
           }
 
-          if (this.sel?.name === tickerName) {
+          if (this.selectedTicker?.name === tickerName) {
             this.graph.push(result['USD']);
           }
           resolve();
@@ -282,8 +287,7 @@ export default {
       });
     },
     selectTicker(item) {
-      this.sel = item;
-      this.graph = [];
+      this.selectedTicker = item;
     },
     async saveCoinList() {
       const coinList = JSON.parse(sessionStorage.getItem('coinlist'));
@@ -300,24 +304,36 @@ export default {
       this.items = JSON.parse(localStorage.getItem('tickerList')) || [];
       this.items.forEach(item => this.subscribeToUpdates(item.title));
     },
-    filterHandler() {
-      this.page = 1;
-      this.pushState();
-    },
     toPrevPage() {
       if (this.page > 1) {
         this.page--;
-        this.pushState();
       }
     },
     toNextPage() {
       if (this.page < this.lastPage) {
         this.page++;
-        this.pushState();
       }
     },
     pushState() {
       window.history.pushState(null, document.title, `${window.location.pathname}?filter=${this.filter}&page=${this.page}`);
+    }
+  },
+  watch: {
+    filter() {
+      this.page = 1;
+      this.pushState();
+    },
+    page() {
+      this.pushState();
+    },
+    paginatedTickers() {
+      if (this.paginatedTickers.length === 0 && this.page > 1) {
+        this.page--;
+      }
+    },
+    selectedTicker() {
+      this.graph = [];
+
     }
   },
   created() {

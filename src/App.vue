@@ -221,6 +221,12 @@ export default {
       }
       return this.graph.map(price => 5 + ((price - min) * 95) / (max - min));
     },
+    pageStateOptions() {
+      return {
+        filter: this.filter,
+        page: this.page,
+      }
+    }
   },
   methods: {
     addSuggest(coinSuggest) {
@@ -244,7 +250,6 @@ export default {
       if (this.selectedTicker === tickerToRemove) {
         this.selectedTicker = null;
       }
-      localStorage.setItem('tickerList', JSON.stringify(this.tickers));
     },
     async addTicker() {
       if (!this.search) return;
@@ -260,7 +265,6 @@ export default {
       this.search = '';
       this.filter = '';
       await this.subscribeToUpdates(newTicker.title);
-      localStorage.setItem('tickerList', JSON.stringify(this.tickers));
     },
     subscribeToUpdates(tickerName) {
       return new Promise((resolve) => {
@@ -308,17 +312,13 @@ export default {
         this.page++;
       }
     },
-    pushState() {
-      window.history.pushState(null, document.title, `${window.location.pathname}?filter=${this.filter}&page=${this.page}`);
-    }
   },
   watch: {
     filter() {
       this.page = 1;
-      this.pushState();
     },
-    page() {
-      this.pushState();
+    pageStateOptions(value) {
+      window.history.pushState(null, document.title, `${window.location.pathname}?filter=${value.filter}&page=${value.page}`);
     },
     paginatedTickers() {
       if (this.paginatedTickers.length === 0 && this.page > 1) {
@@ -334,6 +334,9 @@ export default {
       }
       this.makeSuggestions();
     },
+    tickers() {
+      localStorage.setItem('tickerList', JSON.stringify(this.tickers));
+    }
   },
   created() {
     this.saveCoinList();

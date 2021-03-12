@@ -1,5 +1,5 @@
 export default {
-  apiKey: 'd1f2115da3738ccac61045def57cbb1342d1eca11927eb58290c7cf3dd09debb',
+  apiKey: '9a3d0c7e344d216ed83593e3d89d067c4249db82d697fa671cfcdea23824fd67',
   async fetchTickers(tickerName) {
     try {
       const response = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${tickerName}&tsyms=USD&api_key=${this.apiKey}`);

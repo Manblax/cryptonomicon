@@ -20,11 +20,11 @@
             <div class="mt-1 relative rounded-md shadow-md">
               <input
                   v-model="search"
-                  @input="searchHandler"
-                  @keydown.enter="addItem"
+                  @keydown.enter="addTicker"
                   type="text"
                   name="wallet"
                   id="wallet"
+                  autocomplete="off"
                   class="block w-full pr-10 border-gray-300 text-gray-900 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm rounded-md"
                   placeholder="Например DOGE"
               />
@@ -43,7 +43,7 @@
           </div>
         </div>
         <button
-            @click="addItem"
+            @click="addTicker"
             type="button"
             class="my-4 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
         >
@@ -117,7 +117,7 @@
               </dd>
             </div>
             <div class="w-full border-t border-gray-200"></div>
-            <button @click.stop="deleteItem(item)" class="flex items-center justify-center font-medium w-full bg-gray-100
+            <button @click.stop="deleteTicker(item)" class="flex items-center justify-center font-medium w-full bg-gray-100
                         px-4 py-4 sm:px-6 text-md text-gray-500 hover:text-gray-600
                         hover:bg-gray-200 hover:opacity-20 transition-all focus:outline-none"
             >
@@ -193,7 +193,7 @@ export default {
   data() {
     return {
       search: '',
-      items: [],
+      tickers: [],
       selectedTicker: null,
       graph: [],
       tickerError: false,
@@ -204,8 +204,8 @@ export default {
   computed: {
     filteredTickers() {
       return this.filter
-          ? this.items.filter(item => item.title.toLowerCase().includes(this.filter.trim().toLowerCase()))
-          : [...this.items];
+          ? this.tickers.filter(ticker => ticker.title.toLowerCase().includes(this.filter.trim().toLowerCase()))
+          : [...this.tickers];
     },
     paginatedTickers() {
       return [...this.filteredTickers].splice((this.page - 1) * 6, 6);
@@ -223,16 +223,10 @@ export default {
     },
   },
   methods: {
-    searchHandler() {
-      if (this.tickerError) {
-        this.tickerError = false;
-      }
-      this.makeSuggestions();
-    },
     addSuggest(coinSuggest) {
-      console.log('coinSuggest', coinSuggest)
+      //console.log('coinSuggest', coinSuggest)
       this.search = coinSuggest.Symbol;
-      this.addItem();
+      this.addTicker();
     },
     makeSuggestions() {
       if (!this.search.trim()) return [];
@@ -244,42 +238,42 @@ export default {
 
       return coinList;
     },
-    deleteItem(tickerToRemove) {
-      console.log(tickerToRemove);
-      this.items = this.items.filter(item => item !== tickerToRemove);
+    deleteTicker(tickerToRemove) {
+      //console.log(tickerToRemove);
+      this.tickers = this.tickers.filter(ticker => ticker !== tickerToRemove);
       if (this.selectedTicker === tickerToRemove) {
         this.selectedTicker = null;
       }
-      localStorage.setItem('tickerList', JSON.stringify(this.items));
+      localStorage.setItem('tickerList', JSON.stringify(this.tickers));
     },
-    async addItem() {
+    async addTicker() {
       if (!this.search) return;
 
-      const isIncludes = this.items.some(item => item.title.toLowerCase() === this.search.toLowerCase());
+      const isIncludes = this.tickers.some(ticker => ticker.title.toLowerCase() === this.search.toLowerCase());
       if (isIncludes) return this.tickerError = true;
 
       const newTicker = {
         title: this.search.toUpperCase(),
         price: '-'
       };
-      this.items.push(newTicker);
+      this.tickers = [...this.tickers, newTicker];
       this.search = '';
       this.filter = '';
       await this.subscribeToUpdates(newTicker.title);
-      localStorage.setItem('tickerList', JSON.stringify(this.items));
+      localStorage.setItem('tickerList', JSON.stringify(this.tickers));
     },
     subscribeToUpdates(tickerName) {
       return new Promise((resolve) => {
         setInterval(async () => {
           const result = await api.fetchTickers(tickerName);
           //console.log('result', result);
-          const item = this.items.find(item => item.title === tickerName);
+          const ticker = this.tickers.find(item => item.title === tickerName);
           //console.log('item', item);
-          if (item) {
-            item.price = result['USD'] > 1 ? result['USD'].toFixed(2) : result['USD'].toPrecision(2);
+          if (ticker) {
+            ticker.price = result['USD'] > 1 ? result['USD'].toFixed(2) : result['USD'].toPrecision(2);
           }
 
-          if (this.selectedTicker?.name === tickerName) {
+          if (this.selectedTicker?.title === tickerName) {
             this.graph.push(result['USD']);
           }
           resolve();
@@ -301,8 +295,8 @@ export default {
       this.filter = searchParams.get('filter') || this.filter;
       this.page = searchParams.get('page') || this.page;
 
-      this.items = JSON.parse(localStorage.getItem('tickerList')) || [];
-      this.items.forEach(item => this.subscribeToUpdates(item.title));
+      this.tickers = JSON.parse(localStorage.getItem('tickerList')) || [];
+      this.tickers.forEach(tickers => this.subscribeToUpdates(tickers.title));
     },
     toPrevPage() {
       if (this.page > 1) {
@@ -333,8 +327,13 @@ export default {
     },
     selectedTicker() {
       this.graph = [];
-
-    }
+    },
+    search() {
+      if (this.tickerError) {
+        this.tickerError = false;
+      }
+      this.makeSuggestions();
+    },
   },
   created() {
     this.saveCoinList();

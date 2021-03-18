@@ -103,21 +103,21 @@
         <hr class="w-full border-t border-gray-600 my-4"/>
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div
-              v-for="(item, index) of paginatedTickers"
-              @click="selectTicker(item)"
-              :class="{'border-4': item === selectedTicker}"
+              v-for="(ticker, index) of paginatedTickers"
+              @click="selectTicker(ticker)"
+              :class="{'border-4': ticker === selectedTicker}"
               :key="index"
               class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer">
             <div class="px-4 py-5 sm:p-6 text-center">
               <dt class="text-sm font-medium text-gray-500 truncate">
-                {{ item.title }} - USD
+                {{ ticker.title }} - USD
               </dt>
               <dd class="mt-1 text-3xl font-semibold text-gray-900">
-                {{ item.price }}
+                {{ formatPrice(ticker.price) }}
               </dd>
             </div>
             <div class="w-full border-t border-gray-200"></div>
-            <button @click.stop="deleteTicker(item)" class="flex items-center justify-center font-medium w-full bg-gray-100
+            <button @click.stop="deleteTicker(ticker)" class="flex items-center justify-center font-medium w-full bg-gray-100
                         px-4 py-4 sm:px-6 text-md text-gray-500 hover:text-gray-600
                         hover:bg-gray-200 hover:opacity-20 transition-all focus:outline-none"
             >
@@ -186,7 +186,7 @@
 </template>
 
 <script>
-import api from '@/api';
+import {fetchTickers, fetchCoinList} from '@/api';
 
 export default {
   name: 'App',
@@ -239,7 +239,7 @@ export default {
 
       let coinList = JSON.parse(sessionStorage.getItem('coinlist')) || [];
       coinList = Object.values(coinList.Data);
-      coinList = coinList.filter(item => item.FullName.toLowerCase().includes(this.search.trim().toLowerCase()));
+      coinList = coinList.filter(coin => coin.FullName.toLowerCase().includes(this.search.trim().toLowerCase()));
       coinList.splice(4);
 
       return coinList;
@@ -264,33 +264,27 @@ export default {
       this.tickers = [...this.tickers, newTicker];
       this.search = '';
       this.filter = '';
-      await this.subscribeToUpdates(newTicker.title);
+      clearInterval(this.timerId);
+      this.timerId = setInterval(() => this.updateTickers(), 5000);
     },
-    subscribeToUpdates(tickerName) {
-      return new Promise((resolve) => {
-        setInterval(async () => {
-          const result = await api.fetchTickers(tickerName);
-          //console.log('result', result);
-          const ticker = this.tickers.find(item => item.title === tickerName);
-          //console.log('item', item);
-          if (ticker) {
-            ticker.price = result['USD'] > 1 ? result['USD'].toFixed(2) : result['USD'].toPrecision(2);
-          }
-
-          if (this.selectedTicker?.title === tickerName) {
-            this.graph.push(result['USD']);
-          }
-          resolve();
-        }, 5000);
+    formatPrice(price) {
+      return price > 1 ? price.toFixed(2) : price.toPrecision(2);
+    },
+    async updateTickers() {
+      if (!this.tickers.length) return;
+      const tickerData = await fetchTickers(this.tickers.map(ticker => ticker.title));
+      this.tickers.forEach(ticker => {
+        const price = tickerData[ticker.title.toUpperCase()];
+        ticker.price = price ? price : '-';
       });
     },
-    selectTicker(item) {
-      this.selectedTicker = item;
+    selectTicker(ticker) {
+      this.selectedTicker = ticker;
     },
     async saveCoinList() {
       const coinList = JSON.parse(sessionStorage.getItem('coinlist'));
       if (!coinList) {
-        sessionStorage.setItem('coinlist', JSON.stringify(await api.fetchCoinList()));
+        sessionStorage.setItem('coinlist', JSON.stringify(await fetchCoinList()));
       }
     },
     initTickerList() {
@@ -300,7 +294,7 @@ export default {
       this.page = searchParams.get('page') || this.page;
 
       this.tickers = JSON.parse(localStorage.getItem('tickerList')) || [];
-      this.tickers.forEach(tickers => this.subscribeToUpdates(tickers.title));
+      this.timerId = setInterval(() => this.updateTickers(), 5000);
     },
     toPrevPage() {
       if (this.page > 1) {

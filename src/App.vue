@@ -186,7 +186,7 @@
 </template>
 
 <script>
-import {fetchTickers, fetchCoinList} from '@/api';
+import {fetchTickers, fetchCoinList, subscribeToTicker} from '@/api';
 
 export default {
   name: 'App',
@@ -229,6 +229,11 @@ export default {
     }
   },
   methods: {
+    updateTicker(tickerName, newPrice) {
+      const ticker = this.tickers.filter(ticker => ticker.title === tickerName);
+      ticker.price = newPrice;
+    },
+
     addSuggest(coinSuggest) {
       //console.log('coinSuggest', coinSuggest)
       this.search = coinSuggest.Symbol;
@@ -264,10 +269,14 @@ export default {
       this.tickers = [...this.tickers, newTicker];
       this.search = '';
       this.filter = '';
-      clearInterval(this.timerId);
-      this.timerId = setInterval(() => this.updateTickers(), 5000);
+      subscribeToTicker(newTicker.title, (newPrice) => {
+        this.updateTicker(newTicker.title, newPrice);
+      })
     },
     formatPrice(price) {
+      if (price === '-') {
+        return price;
+      }
       return price > 1 ? price.toFixed(2) : price.toPrecision(2);
     },
     async updateTickers() {
@@ -275,7 +284,7 @@ export default {
       const tickerData = await fetchTickers(this.tickers.map(ticker => ticker.title));
       this.tickers.forEach(ticker => {
         const price = tickerData[ticker.title.toUpperCase()];
-        ticker.price = price ? price : '-';
+        ticker.price = price ?? '-';
       });
     },
     selectTicker(ticker) {
@@ -294,7 +303,9 @@ export default {
       this.page = searchParams.get('page') || this.page;
 
       this.tickers = JSON.parse(localStorage.getItem('tickerList')) || [];
-      this.timerId = setInterval(() => this.updateTickers(), 5000);
+      this.tickers.forEach(ticker => subscribeToTicker(ticker, () => {
+        this.updateTicker(ticker.title, ticker.price);
+      }));
     },
     toPrevPage() {
       if (this.page > 1) {

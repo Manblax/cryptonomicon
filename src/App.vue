@@ -186,7 +186,8 @@
 </template>
 
 <script>
-import {fetchTickers, fetchCoinList, subscribeToTicker} from '@/api';
+import {  nextTick } from 'vue'
+import {fetchCoinList, subscribeToTicker} from '@/api';
 
 export default {
   name: 'App',
@@ -230,8 +231,13 @@ export default {
   },
   methods: {
     updateTicker(tickerName, newPrice) {
-      const ticker = this.tickers.filter(ticker => ticker.title === tickerName);
-      ticker.price = newPrice;
+      console.log('updateTicker', tickerName, newPrice)
+      const tk = this.tickers.filter(t => {
+        console.log('compare', t.title === tickerName)
+        return t.title === tickerName
+      });
+      console.log('s.ticker', tk)
+      tk.price = 1;
     },
 
     addSuggest(coinSuggest) {
@@ -280,12 +286,12 @@ export default {
       return price > 1 ? price.toFixed(2) : price.toPrecision(2);
     },
     async updateTickers() {
-      if (!this.tickers.length) return;
-      const tickerData = await fetchTickers(this.tickers.map(ticker => ticker.title));
-      this.tickers.forEach(ticker => {
-        const price = tickerData[ticker.title.toUpperCase()];
-        ticker.price = price ?? '-';
-      });
+      // if (!this.tickers.length) return;
+      // const tickerData = await fetchTickers(this.tickers.map(ticker => ticker.title));
+      // this.tickers.forEach(ticker => {
+      //   const price = tickerData[ticker.title.toUpperCase()];
+      //   ticker.price = price ?? '-';
+      // });
     },
     selectTicker(ticker) {
       this.selectedTicker = ticker;
@@ -303,8 +309,8 @@ export default {
       this.page = searchParams.get('page') || this.page;
 
       this.tickers = JSON.parse(localStorage.getItem('tickerList')) || [];
-      this.tickers.forEach(ticker => subscribeToTicker(ticker, () => {
-        this.updateTicker(ticker.title, ticker.price);
+      this.tickers.forEach(ticker => subscribeToTicker(ticker.title, (newPrice) => {
+        this.updateTicker(ticker.title, newPrice);
       }));
     },
     toPrevPage() {
@@ -344,7 +350,7 @@ export default {
     }
   },
   created() {
-    this.saveCoinList();
+    //this.saveCoinList();
     this.initTickerList();
   }
 }

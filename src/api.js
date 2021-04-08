@@ -6,19 +6,26 @@ const socket = new WebSocket(`wss://streamer.cryptocompare.com/v2?api_key=${API_
 socket.addEventListener('message', (event) => {
   //console.log(`[message] Данные получены с сервера: ${event.data}`);
   const data = JSON.parse(event.data);
-  const tickerName = data.FROMSYMBOL
+  if (data.TYPE === '5' && data.PRICE) {
+    const tickerName = data.FROMSYMBOL;
 
-  if (tickers.has(tickerName)) {
-    const cbList = tickers.get(tickerName);
-    for (const cb of cbList) {
-      cb(data.PRICE);
+    if (tickers.has(tickerName)) {
+      const cbList = tickers.get(tickerName);
+      for (const cb of cbList) {
+        cb(data.PRICE);
+      }
     }
   }
 });
 
 
-function fetchCoinList() {
-
+async function fetchCoinList() {
+  try {
+    const response = await fetch('https://min-api.cryptocompare.com/data/all/coinlist?summary=true');
+    return response.json();
+  } catch (e) {
+    console.log('error', e);
+  }
 }
 
 function sendToWS(serializedMessage) {
@@ -70,7 +77,7 @@ function unsubscribeFromTicker(ticker, cb) {
 window.tickers = tickers
 
 socket.addEventListener('open', () => {
-  //console.log("[open] Соединение установлено");
+  console.log("[open] Соединение установлено");
   //console.log("Отправляем данные на сервер");
   //socket.send("Меня зовут Джон");
 });

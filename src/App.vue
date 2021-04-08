@@ -186,7 +186,6 @@
 </template>
 
 <script>
-import {  nextTick } from 'vue'
 import {fetchCoinList, subscribeToTicker} from '@/api';
 
 export default {
@@ -231,13 +230,8 @@ export default {
   },
   methods: {
     updateTicker(tickerName, newPrice) {
-      console.log('updateTicker', tickerName, newPrice)
-      const tk = this.tickers.filter(t => {
-        console.log('compare', t.title === tickerName)
-        return t.title === tickerName
-      });
-      console.log('s.ticker', tk)
-      tk.price = 1;
+      const foundTicker = this.tickers.find(t => t.title === tickerName);
+      foundTicker.price = newPrice;
     },
 
     addSuggest(coinSuggest) {
@@ -350,8 +344,9 @@ export default {
     }
   },
   created() {
-    //this.saveCoinList();
+    this.saveCoinList();
     this.initTickerList();
+    window.vv1 = this
   }
 }
 </script>

@@ -232,6 +232,9 @@ export default {
     updateTicker(tickerName, newPrice) {
       const foundTicker = this.tickers.find(t => t.title === tickerName);
       foundTicker.price = newPrice;
+      if (foundTicker.title === this.selectedTicker?.title) {
+        this.graph.push(newPrice);
+      }
     },
 
     addSuggest(coinSuggest) {
@@ -298,7 +301,6 @@ export default {
     },
     initTickerList() {
       const searchParams = new URLSearchParams(window.location.search);
-      console.log(searchParams.get('filter'))
       this.filter = searchParams.get('filter') || this.filter;
       this.page = searchParams.get('page') || this.page;
 
@@ -346,7 +348,6 @@ export default {
   created() {
     this.saveCoinList();
     this.initTickerList();
-    window.vv1 = this
   }
 }
 </script>

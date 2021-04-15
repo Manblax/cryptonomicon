@@ -145,10 +145,11 @@
         <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
           {{ selectedTicker.title }} - USD
         </h3>
-        <div class="flex items-end border-gray-600 border-b border-l h-64">
+        <div ref="graph" class="flex items-end border-gray-600 border-b border-l h-64">
           <div v-for="(bar, index) of normalizedGraph"
                :key="index"
                :style="{height: `${bar}%`}"
+               ref="graph-item"
                class="bg-purple-800 border w-10">
 
           </div>
@@ -199,6 +200,8 @@ export default {
       tickerError: false,
       filter: '',
       page: 1,
+      graphMaxSize: 13,
+      graphItemSize: null
     }
   },
   computed: {
@@ -234,7 +237,27 @@ export default {
       foundTicker.price = newPrice;
       if (foundTicker.title === this.selectedTicker?.title) {
         this.graph.push(newPrice);
+        this.truncateGraph();
       }
+    },
+
+    truncateGraph() {
+      if (this.$refs['graph-item'] && !this.graphItemSize) {
+        this.graphItemSize = this.$refs['graph-item'].clientWidth;
+      }
+      if (this.graph.length > this.graphMaxSize) {
+        console.log('this.graph.length - max', this.graph.length, this.graphMaxSize)
+        this.graph.splice(0, this.graph.length - this.graphMaxSize);
+      }
+    },
+
+    calcGraphMaxSize() {
+      const graphEl = this.$refs.graph;
+      const graphItemEl = this.$refs['graph-item'];
+      if (!graphEl || !graphItemEl) return;
+
+      this.graphMaxSize = Math.floor(graphEl.clientWidth / this.graphItemSize);
+      console.log('this.max', this.graphMaxSize);
     },
 
     addSuggest(coinSuggest) {
@@ -253,7 +276,6 @@ export default {
       return coinList;
     },
     deleteTicker(tickerToRemove) {
-      //console.log(tickerToRemove);
       this.tickers = this.tickers.filter(ticker => ticker !== tickerToRemove);
       if (this.selectedTicker === tickerToRemove) {
         this.selectedTicker = null;
@@ -348,6 +370,12 @@ export default {
   created() {
     this.saveCoinList();
     this.initTickerList();
+  },
+  mounted() {
+    window.addEventListener('resize', this.calcGraphMaxSize);
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.calcGraphMaxSize);
   }
 }
 </script>

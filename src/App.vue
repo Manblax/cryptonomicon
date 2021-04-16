@@ -200,7 +200,7 @@ export default {
       tickerError: false,
       filter: '',
       page: 1,
-      graphMaxSize: 13,
+      graphMaxSize: 1,
       graphItemSize: null
     }
   },
@@ -237,7 +237,6 @@ export default {
       foundTicker.price = newPrice;
       if (foundTicker.title === this.selectedTicker?.title) {
         this.graph.push(newPrice);
-        this.truncateGraph();
       }
     },
 
@@ -356,6 +355,10 @@ export default {
     },
     selectedTicker() {
       this.graph = [];
+      this.$nextTick(() => {
+        this.truncateGraph();
+        this.calcGraphMaxSize();
+      });
     },
     search() {
       if (this.tickerError) {

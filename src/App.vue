@@ -1,17 +1,10 @@
 <template>
   <div class="container mx-auto flex flex-col items-center bg-gray-100 p-4">
-    <!--    <div class="fixed w-100 h-100 opacity-80 bg-purple-800 inset-0 z-50 flex items-center justify-center">-->
-    <!--      <svg class="animate-spin -ml-1 mr-3 h-12 w-12 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"-->
-    <!--           viewBox="0 0 24 24">-->
-    <!--        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>-->
-    <!--        <path class="opacity-75" fill="currentColor"-->
-    <!--              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>-->
-    <!--      </svg>-->
-    <!--    </div>-->
+    <Spin v-if="loader"/>
 
     <div class="container">
       <div class="w-full my-4"></div>
-      <AddTicker :tickers="tickers" @add-ticker="addTicker"></AddTicker>
+      <AddTicker :tickers="tickers" @add-ticker="addTicker"/>
 
       <div class="flex items-end mt-4">
         <div class="w-1/5">
@@ -48,49 +41,14 @@
         <span class="ml-4">{{ page }}</span>
       </div>
 
-      <template v-if="paginatedTickers.length">
-        <hr class="w-full border-t border-gray-600 my-4"/>
-        <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
-          <div
-              v-for="(ticker, index) of paginatedTickers"
-              @click="selectTicker(ticker)"
-              :class="{'border-4': ticker === selectedTicker}"
-              :key="index"
-              class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer">
-            <div class="px-4 py-5 sm:p-6 text-center">
-              <dt class="text-sm font-medium text-gray-500 truncate">
-                {{ ticker.title }} - USD
-              </dt>
-              <dd class="mt-1 text-3xl font-semibold text-gray-900">
-                {{ formatPrice(ticker.price) }}
-              </dd>
-            </div>
-            <div class="w-full border-t border-gray-200"></div>
-            <button @click.stop="deleteTicker(ticker)" class="flex items-center justify-center font-medium w-full bg-gray-100
-                        px-4 py-4 sm:px-6 text-md text-gray-500 hover:text-gray-600
-                        hover:bg-gray-200 hover:opacity-20 transition-all focus:outline-none"
-            >
-              <svg
-                  class="h-5 w-5"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="#718096"
-                  aria-hidden="true"
-              >
-                <path
-                    fill-rule="evenodd"
-                    d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                    clip-rule="evenodd"
-                ></path>
-              </svg>
-              Удалить
-            </button>
-          </div>
-
-        </dl>
-        <hr class="w-full border-t border-gray-600 my-4"/>
-      </template>
-      <Graph v-if="selectedTicker" :ticker="selectedTicker" :graph="graph" @ticker-reset="reset"></Graph>
+      <TickerList
+          v-if="paginatedTickers.length"
+          :tickers="paginatedTickers"
+          :selectedTicker="selectedTicker"
+          @selected-ticker="selectTicker"
+          @deleted-ticker="deleteTicker"
+      />
+      <Graph v-if="selectedTicker" :ticker="selectedTicker" :graph="graph" @ticker-reset="reset"/>
     </div>
   </div>
 </template>
@@ -99,12 +57,16 @@
 import {fetchCoinList, tickerApi} from '@/api';
 import AddTicker from "./components/AddTicker";
 import Graph from "./components/Graph";
+import Spin from "./components/Spin";
+import TickerList from "./components/TickerList";
 
 export default {
   name: 'App',
   components: {
     AddTicker,
-    Graph
+    Graph,
+    Spin,
+    TickerList,
   },
   data() {
     return {
@@ -113,6 +75,7 @@ export default {
       graph: [],
       filter: '',
       page: 1,
+      loader: false,
     }
   },
   computed: {
@@ -157,12 +120,7 @@ export default {
         this.updateTicker(newTicker.title, newPrice);
       })
     },
-    formatPrice(price) {
-      if (price === '-') {
-        return price;
-      }
-      return price > 1 ? price.toFixed(2) : price.toPrecision(2);
-    },
+
     selectTicker(ticker) {
       this.selectedTicker = ticker;
     },
@@ -177,7 +135,10 @@ export default {
       this.filter = searchParams.get('filter') || this.filter;
       this.page = searchParams.get('page') || this.page;
 
+      this.loader = true;
       this.tickers = JSON.parse(localStorage.getItem('tickerList')) || [];
+      this.loader = false;
+
       this.tickers.forEach(ticker => tickerApi.subscribeToTicker(ticker.title, (newPrice) => {
         this.updateTicker(ticker.title, newPrice);
       }));

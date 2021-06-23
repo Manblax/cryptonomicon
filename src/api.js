@@ -6,6 +6,7 @@ async function fetchCoinList() {
     return response.json();
   } catch (e) {
     console.log('error', e);
+    return [];
   }
 }
 

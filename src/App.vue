@@ -96,7 +96,7 @@
 </template>
 
 <script>
-import {fetchCoinList, subscribeToTicker} from '@/api';
+import {fetchCoinList, tickerApi} from '@/api';
 import AddTicker from "./components/AddTicker";
 import Graph from "./components/Graph";
 
@@ -148,11 +148,12 @@ export default {
       if (this.selectedTicker === tickerToRemove) {
         this.selectedTicker = null;
       }
+      tickerApi.unsubscribeFromTicker(tickerToRemove.name);
     },
     async addTicker(newTicker) {
       this.tickers = [...this.tickers, newTicker];
       this.filter = '';
-      subscribeToTicker(newTicker.title, (newPrice) => {
+      tickerApi.subscribeToTicker(newTicker.title, (newPrice) => {
         this.updateTicker(newTicker.title, newPrice);
       })
     },
@@ -161,14 +162,6 @@ export default {
         return price;
       }
       return price > 1 ? price.toFixed(2) : price.toPrecision(2);
-    },
-    async updateTickers() {
-      // if (!this.tickers.length) return;
-      // const tickerData = await fetchTickers(this.tickers.map(ticker => ticker.title));
-      // this.tickers.forEach(ticker => {
-      //   const price = tickerData[ticker.title.toUpperCase()];
-      //   ticker.price = price ?? '-';
-      // });
     },
     selectTicker(ticker) {
       this.selectedTicker = ticker;
@@ -185,7 +178,7 @@ export default {
       this.page = searchParams.get('page') || this.page;
 
       this.tickers = JSON.parse(localStorage.getItem('tickerList')) || [];
-      this.tickers.forEach(ticker => subscribeToTicker(ticker.title, (newPrice) => {
+      this.tickers.forEach(ticker => tickerApi.subscribeToTicker(ticker.title, (newPrice) => {
         this.updateTicker(ticker.title, newPrice);
       }));
     },

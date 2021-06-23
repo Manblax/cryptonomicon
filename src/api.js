@@ -1,23 +1,4 @@
-const API_KEY = '9a3d0c7e344d216ed83593e3d89d067c4249db82d697fa671cfcdea23824fd67';
-const tickers = new Map();
-
-const socket = new WebSocket(`wss://streamer.cryptocompare.com/v2?api_key=${API_KEY}`);
-
-socket.addEventListener('message', (event) => {
-  //console.log(`[message] Данные получены с сервера: ${event.data}`);
-  const data = JSON.parse(event.data);
-  if (data.TYPE === '5' && data.PRICE) {
-    const tickerName = data.FROMSYMBOL;
-
-    if (tickers.has(tickerName)) {
-      const cbList = tickers.get(tickerName);
-      for (const cb of cbList) {
-        cb(data.PRICE);
-      }
-    }
-  }
-});
-
+import {EventManager} from "./utils/EventManager";
 
 async function fetchCoinList() {
   try {
@@ -28,77 +9,94 @@ async function fetchCoinList() {
   }
 }
 
-function sendToWS(serializedMessage) {
+class Ticker {
+  static AGGREGATE_INDEX = "5";
+  static API_KEY = '9a3d0c7e344d216ed83593e3d89d067c4249db82d697fa671cfcdea23824fd67';
 
-  if (socket.readyState !== WebSocket.OPEN) {
-    socket.addEventListener('open', () => {
-      socket.send(serializedMessage);
-      //console.log('serializedMessage', serializedMessage)
+  constructor() {
+    this.socket = new WebSocket(`wss://streamer.cryptocompare.com/v2?api_key=${Ticker.API_KEY}`);
+    this.events = new EventManager();
+    this.initListeners();
+  }
+
+  sendToWebSocket(message) {
+    const stringifiedMessage = JSON.stringify(message);
+
+    if (this.socket.readyState === WebSocket.OPEN) {
+      this.socket.send(stringifiedMessage);
+      return;
+    }
+
+    this.socket.addEventListener(
+      "open",
+      () => this.socket.send(stringifiedMessage),
+      {once: true}
+    );
+  }
+
+  subscribeToTickerOnWs(ticker) {
+    this.sendToWebSocket({
+      action: "SubAdd",
+      subs: [`5~CCCAGG~${ticker}~USD`]
     });
-  } else {
-    socket.send(serializedMessage);
-    //console.log('serializedMessage', serializedMessage)
+  }
+
+  unsubscribeFromTickerOnWs(ticker) {
+    this.sendToWebSocket({
+      action: "SubRemove",
+      subs: [`5~CCCAGG~${ticker}~USD`]
+    });
+  }
+
+  subscribeToTicker(ticker, cb) {
+    this.events.subscribe(ticker, cb);
+    this.subscribeToTickerOnWs(ticker);
+  }
+
+  unsubscribeFromTicker(ticker, cb) {
+    this.events.unsubscribe(ticker, cb);
+    this.unsubscribeFromTickerOnWs(ticker);
+  }
+
+  initListeners() {
+    this.socket.addEventListener("message", event => {
+      let tickerData;
+
+      try {
+        tickerData = JSON.parse(event.data);
+      } catch (e) {
+        console.log(e);
+        return;
+      }
+
+      const {TYPE: type, FROMSYMBOL: currency, PRICE: newPrice} = tickerData;
+
+      if (type !== Ticker.AGGREGATE_INDEX || newPrice === undefined) {
+        return;
+      }
+
+      this.events.notify(currency, newPrice);
+    });
+
+    this.socket.addEventListener('open', () => {
+      console.log("Ticker WS [open]  Соединение установлено");
+    });
+
+    this.socket.addEventListener('close', (event) => {
+      if (event.wasClean) {
+        console.log(`Ticker WS [close] Соединение закрыто чисто, код=${event.code} причина=${event.reason}`);
+      } else {
+        console.log('Ticker WS [close] Соединение прервано');
+      }
+    });
+
+    this.socket.addEventListener('error', (error) => {
+      console.log(`Ticker WS [error] ${error.message}`);
+    });
   }
 }
 
-function subscribeToWS(tickerName) {
-  const serializedMessage = JSON.stringify({
-    "action": "SubAdd",
-    "subs": [`5~CCCAGG~${tickerName}~USD`]
-  });
-  //console.log('subscribeToWS', tickerName)
+const tickerApi = new Ticker();
 
-  sendToWS(serializedMessage);
-}
-
-function unsubscribeFromWS(tickerName) {
-  const serializedMessage = JSON.stringify({
-    "action": "SubRemove",
-    "subs": [`5~CCCAGG~${tickerName}~USD`]
-  })
-  //console.log('unsubscribeFromWS', tickerName)
-  sendToWS(serializedMessage);
-}
-
-
-function subscribeToTicker(ticker, cb) {
-  const subscribers = tickers.get('ticker') || [];
-  tickers.set(ticker, [...subscribers, cb]);
-  subscribeToWS(ticker);
-}
-
-function unsubscribeFromTicker(ticker, cb) {
-  const subscribers = tickers.get('ticker') || [];
-  tickers.set(ticker, subscribers.filter(fn => fn !== cb));
-
-  unsubscribeFromWS(ticker);
-}
-
-window.tickers = tickers
-
-socket.addEventListener('open', () => {
-  console.log("[open] Соединение установлено");
-  //console.log("Отправляем данные на сервер");
-  //socket.send("Меня зовут Джон");
-});
-
-
-socket.addEventListener('close', (event) => {
-  if (event.wasClean) {
-    console.log(`[close] Соединение закрыто чисто, код=${event.code} причина=${event.reason}`);
-  } else {
-    // например, сервер убил процесс или сеть недоступна
-    // обычно в этом случае event.code 1006
-    console.log('[close] Соединение прервано');
-  }
-});
-
-socket.addEventListener('error', (error) => {
-  console.log(`[error] ${error.message}`);
-});
-
-function fetchTickers() {
-}
-
-export {fetchTickers, fetchCoinList, subscribeToTicker, unsubscribeFromTicker}
+export {fetchCoinList, tickerApi}
 

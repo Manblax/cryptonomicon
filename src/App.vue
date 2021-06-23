@@ -7,38 +7,8 @@
       <AddTicker :tickers="tickers" @add-ticker="addTicker"/>
 
       <div class="flex items-end mt-4">
-        <div class="w-1/5">
-          <label for="filter" class="block text-sm font-medium text-gray-700"
-          >Фильтр</label
-          >
-          <div class="mt-1 relative rounded-md shadow-md">
-            <input
-                v-model="filter"
-                type="text"
-                name="filter"
-                id="filter"
-                class="block w-full pr-10 border-gray-300 text-gray-900 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm rounded-md"
-                placeholder="Фильтр"
-            />
-          </div>
-        </div>
-        <button
-            :class="{'bg-opacity-50 hover:bg-opacity-50': page <= 1}"
-            @click="toPrevPage"
-            type="button"
-            class="inline-flex items-center ml-10 py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-        >
-          Назад
-        </button>
-        <button
-            :class="{'bg-opacity-50 hover:bg-opacity-50': page >= lastPage}"
-            @click="toNextPage"
-            type="button"
-            class="inline-flex items-center ml-5 py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-        >
-          Вперед
-        </button>
-        <span class="ml-4">{{ page }}</span>
+        <Filter v-model:filter="filter"/>
+        <Pagination @to-prev-page="toPrevPage" @to-next-page="toNextPage" :current="page" :last="lastPage"/>
       </div>
 
       <TickerList
@@ -59,6 +29,8 @@ import AddTicker from "./components/AddTicker";
 import Graph from "./components/Graph";
 import Spin from "./components/Spin";
 import TickerList from "./components/TickerList";
+import Pagination from "./components/Pagination";
+import Filter from "./components/Filter";
 
 export default {
   name: 'App',
@@ -67,6 +39,8 @@ export default {
     Graph,
     Spin,
     TickerList,
+    Pagination,
+    Filter
   },
   data() {
     return {
@@ -133,7 +107,7 @@ export default {
     initTickerList() {
       const searchParams = new URLSearchParams(window.location.search);
       this.filter = searchParams.get('filter') || this.filter;
-      this.page = searchParams.get('page') || this.page;
+      this.page = parseInt(searchParams.get('page') || this.page);
 
       this.loader = true;
       this.tickers = JSON.parse(localStorage.getItem('tickerList')) || [];

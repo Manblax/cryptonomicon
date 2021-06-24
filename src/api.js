@@ -11,7 +11,8 @@ async function fetchCoinList() {
 }
 
 class Ticker {
-  static AGGREGATE_INDEX = "5";
+  static AGGREGATE_INDEX = '5';
+  static INVALID_SUB_INDEX = '500';
   static API_KEY = '9a3d0c7e344d216ed83593e3d89d067c4249db82d697fa671cfcdea23824fd67';
 
   constructor() {
@@ -70,13 +71,15 @@ class Ticker {
         return;
       }
 
-      const {TYPE: type, FROMSYMBOL: currency, PRICE: newPrice} = tickerData;
+      let {TYPE: type, FROMSYMBOL: currency, PRICE: newPrice, PARAMETER: parameter} = tickerData;
 
-      if (type !== Ticker.AGGREGATE_INDEX || newPrice === undefined) {
-        return;
+      if (((type === Ticker.AGGREGATE_INDEX) && newPrice) || (type === Ticker.INVALID_SUB_INDEX)) {
+        if (type === Ticker.INVALID_SUB_INDEX) {
+          currency = parameter.split('~')[2];
+          newPrice = null;
+        }
+        this.events.notify(currency, newPrice);
       }
-
-      this.events.notify(currency, newPrice);
     });
 
     this.socket.addEventListener('open', () => {

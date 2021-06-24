@@ -96,6 +96,10 @@ export default {
       this.tickers = [...this.tickers, newTicker];
       this.filter = '';
       tickerApi.subscribeToTicker(newTicker.title, (newPrice) => {
+        if (newPrice === null) {
+          newTicker.invalid = true;
+          return;
+        }
         this.updateTicker(newTicker.title, newPrice);
       })
     },
@@ -119,6 +123,10 @@ export default {
       this.loader = false;
 
       this.tickers.forEach(ticker => tickerApi.subscribeToTicker(ticker.title, (newPrice) => {
+        if (newPrice === null) {
+          ticker.invalid = true;
+          return;
+        }
         this.updateTicker(ticker.title, newPrice);
       }));
     },

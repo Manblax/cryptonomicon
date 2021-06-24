@@ -87,7 +87,12 @@ export default {
       }
       tickerApi.unsubscribeFromTicker(tickerToRemove.name);
     },
-    async addTicker(newTicker) {
+    async addTicker(ticker) {
+      const newTicker = {
+        title: ticker.toUpperCase(),
+        price: '-'
+      };
+
       this.tickers = [...this.tickers, newTicker];
       this.filter = '';
       tickerApi.subscribeToTicker(newTicker.title, (newPrice) => {

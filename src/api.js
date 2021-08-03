@@ -55,8 +55,8 @@ class Ticker {
     this.subscribeToTickerOnWs(ticker);
   }
 
-  unsubscribeFromTicker(ticker, cb) {
-    this.events.unsubscribe(ticker, cb);
+  unsubscribeFromTicker(ticker) {
+    this.events.unsubscribeAll(ticker);
     this.unsubscribeFromTickerOnWs(ticker);
   }
 
